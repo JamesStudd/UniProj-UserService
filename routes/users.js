@@ -8,7 +8,15 @@ const creditCard = /^[0-9]{16}$/;
 
 // Register form
 router.get('/register', (req, res) => {
-    res.send('Register');
+    User.find({},function(err, users) {
+        if (err){
+            console.log(err);
+            return;
+        }
+        if (users) {
+            res.render('viewUsers', {users});
+        }
+    });
 });
 
 // Register process
@@ -63,6 +71,9 @@ router.post('/register', [
         });
     });
 });
+
+// login post route
+
 
 function IsCreditCardNumber(str) {
     if (typeof str !== 'string')
