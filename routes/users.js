@@ -2,12 +2,13 @@ const express = require('express');
 const { check, validationResult } = require('express-validator/check');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const passport = require('passport');
 
 const User = require('../database/models/userModel');
 const creditCard = /^[0-9]{16}$/;
 
 // Register form
-router.get('/register', (req, res) => {
+router.get('/list', (req, res) => {
     User.find({},function(err, users) {
         if (err){
             console.log(err);
@@ -19,12 +20,17 @@ router.get('/register', (req, res) => {
     });
 });
 
+// Register Get
+router.get('/register', (req, res) => {
+    res.render('users/register');
+});
+
 // Register process
 router.post('/register', [
-    check('name').custom(value => {
+    check('username').custom(value => {
         return User.findOne({value}).then(user => {
             if (user) {
-                return Promise.reject('Name is already in use.');
+                return Promise.reject('Username is already in use.');
             }
         });
     }),
@@ -50,7 +56,7 @@ router.post('/register', [
     let cNumber = req.body.creditCardNumber.replace(/[- ]+/g, '');
     cNumber = parseInt(cNumber);
     let newUser = new User({
-        name: req.body.name,
+        username: req.body.username,
         email: req.body.email,
         password: req.body.password,
         creditCardNumber: cNumber
@@ -72,7 +78,31 @@ router.post('/register', [
     });
 });
 
+// Login Get
+router.get('/login', (req, res) => {
+    res.render('users/login');
+});
+
+
 // login post route
+router.post('/login', function (req, res, next) {
+    passport.authenticate('local', {
+        successRedirect: '/users/done',
+        failureRedirect: '/',
+        failureFlash: true
+    })(req, res, next);
+});
+
+// Logout
+router.get('/logout', function (req, res) {
+    req.logout();
+    req.flash('success', 'You are logged out.');
+    res.redirect('/');
+});
+
+router.get('/done', function (req, res) {
+    res.render('singleUser');
+});
 
 
 function IsCreditCardNumber(str) {

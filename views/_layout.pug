@@ -1,0 +1,18 @@
+doctype html
+html
+    head
+        title Users Service
+        link(rel='stylesheet' href='/bower_components/bootstrap/dist/css/bootstrap.css')
+    body
+        include include/navigation.pug
+        .container
+            != messages('include/message', locals)
+            if errors
+                each error, i in errors
+                    div(class='alert alert-danger') #{error.msg}
+            block content
+            br
+            hr
+            include include/footer.pug
+        script(src='/bower_components/jquery/dist/jquery.js')
+        script(src='/bower_components/bootstrap/dist/js/bootstrap.js')

@@ -25,12 +25,28 @@ function InitAppUses() {
         saveUninitialized: true
     }));
 
+    // Express Messages middleware
+    app.use(require('connect-flash')());
+    app.use(function (req, res, next) {
+        res.locals.messages = require('express-messages')(req, res);
+        next();
+    });
+
+    require('./config/passport')(passport);
+    app.use(passport.initialize());
+    app.use(passport.session());
+
+    app.get('*', function (req, res, next) {
+        res.locals.user = req.user || null;
+        next();
+    })
+
     app.use(expressValidator());
 
     app.set('view engine', 'pug');
     app.set('views', './views');
 
-    app.use(bodyParser.urlencoded({extended: true}));
+    app.use(bodyParser.urlencoded({ extended: true }));
     app.use(bodyParser.json());
 
     app.use(upload.array());
@@ -43,6 +59,6 @@ function InitAppUses() {
 
 function InitAppRoutes() {
     app.get('/', (req, res) => {
-        res.render('index', {title: 'Home', message: 'List of users'});
+        res.render('index');
     });
 }

@@ -1,6 +1,6 @@
 module.exports = {
-    database: '',
-    user: '',
-    password: '',
-    secret: ''
+    database: '@ds263367.mlab.com:63367/usermanagement',
+    user: 'james',
+    password: 'DisneyisFUN12',
+    secret: 'tempSecret'
 };
