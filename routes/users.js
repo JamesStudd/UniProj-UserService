@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const passport = require('passport');
 
 const User = require('../database/models/userModel');
-const creditCard = /^[0-9]{16}$/;
+const validation = require('./../utils/validation');
 
 // Register form
 router.get('/list', (req, res) => {
@@ -15,7 +15,9 @@ router.get('/list', (req, res) => {
             return;
         }
         if (users) {
-            res.render('viewUsers', { users });
+            res.status(200).send(users);
+        } else {
+            res.status(404);
         }
     });
 });
@@ -29,7 +31,7 @@ router.get('/register', (req, res) => {
 router.post('/register', [
     check('username').not().isEmpty().withMessage('Name is a required field.'),
     check('username').custom(value => {
-        return User.findOne({ value }).then(user => {
+        return User.findOne({ username: value }).then(user => {
             if (user) {
                 return Promise.reject('Username is already in use.');
             } else {
@@ -39,7 +41,14 @@ router.post('/register', [
     }),
     check('email').not().isEmpty().withMessage('Email is a required field.'),
     check('email').custom(value => {
-        return User.findOne({ value }).then(user => {
+        if (!validation.isEmail(value.toString())) {
+            return Promise.reject('Invalid email address.')
+        } else { 
+            return true;
+        }
+    }),
+    check('email').custom(value => {
+        return User.findOne({ email: value }).then(user => {
             if (user) {
                 return Promise.reject('Email is already in use.');
             } else {
@@ -49,13 +58,14 @@ router.post('/register', [
     }),
     check('creditCardNumber').not().isEmpty().withMessage('Credit Card Number is a required field.'),
     check('creditCardNumber').custom(value => {
-        if (!IsCreditCardNumber(value)) {
+        if (!validation.isCreditCardNumber(value.toString())) {
             return Promise.reject('Invalid credit card number.');
         } else {
             return true;
         }
     }),
     check('password').not().isEmpty().withMessage('Password is a required field.'),
+    check('password2').not().isEmpty().withMessage('Password confirmation is a required field.'),
     check('password').custom((value, { req }) => {
         if (req.body.password2 && value && value != req.body.password2) {
             return Promise.reject('Passwords must match.');
@@ -63,15 +73,12 @@ router.post('/register', [
             return true;
         }
     }),
-    check('password2').not().isEmpty().withMessage('Password confirmation is a required field.')
 ], (req, res) => {
     const errors = validationResult(req);
     if (errors.array().length > 0) {
-        return res.render('users/register', {
-            errors: errors.array()
-        });
+        return res.status(400).send(errors.array());
     }
-    let cNumber = req.body.creditCardNumber.replace(/[- ]+/g, '');
+    let cNumber = req.body.creditCardNumber.toString().replace(/[- ]+/g, '');
     cNumber = parseInt(cNumber);
     let newUser = new User({
         username: req.body.username,
@@ -90,8 +97,9 @@ router.post('/register', [
                 if (err) {
                     return res.status(500).json({ errors: err });
                 }
-                req.flash('success', 'You are now registed and can log in');
-                res.redirect('/users/login');
+                return res.status(200).send(newUser);
+                // req.flash('success', 'You are now registed and can log in');
+                // res.redirect('/users/login');
             });
         });
     });
@@ -119,16 +127,17 @@ router.get('/logout', function (req, res) {
     res.redirect('/');
 });
 
-router.get('/done', function (req, res) {
-    res.render('singleUser');
+router.get('/:username', function (req, res) {
+    User.findOne({username: req.params.username}, function (err, user) {
+        if (err) {
+            return res.status(500);
+        }
+        if (user) {
+            res.status(200).send(user);
+        } else {
+            res.status(404).send();
+        }
+    });
 });
-
-
-function IsCreditCardNumber(str) {
-    if (typeof str !== 'string')
-        return;
-    let sanitized = str.replace(/[- ]+/g, '');
-    return creditCard.test(sanitized);
-}
 
 module.exports = router;

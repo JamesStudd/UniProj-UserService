@@ -1,3 +1,4 @@
+require('./config/config');
 const express = require('express');
 const bodyParser = require('body-parser');
 const multer = require('multer');
@@ -62,3 +63,5 @@ function InitAppRoutes() {
         res.render('index');
     });
 }
+
+module.exports = {app};
