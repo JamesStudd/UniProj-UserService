@@ -1,11 +1,13 @@
 const express = require('express');
 const { check, validationResult } = require('express-validator/check');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const passport = require('passport');
 
 const User = require('../database/models/userModel');
 const validation = require('./../utils/validation');
+const jwtConfig = require('./../config/jwtConfig');
 
 // Register form
 router.get('/list', (req, res) => {
@@ -97,7 +99,12 @@ router.post('/register', [
                 if (err) {
                     return res.status(500).json({ errors: err });
                 }
-                return res.status(200).send(newUser);
+                
+                let token = jwt.sign({id: newUser._id}, jwtConfig.secret, {
+                    expiresIn: 86400 // Expires in 24 hours
+                });
+
+                res.status(200).send({auth: true, token: token, user: newUser});
                 // req.flash('success', 'You are now registed and can log in');
                 // res.redirect('/users/login');
             });
@@ -112,13 +119,15 @@ router.get('/login', (req, res) => {
 
 
 // login post route
-router.post('/login', function (req, res, next) {
-    passport.authenticate('local', {
-        successRedirect: '/',
-        failureRedirect: '/users/login',
-        failureFlash: true
-    })(req, res, next);
+router.post('/login', (req, res) => {
+    User.findOne({email: req.body.email}, (err, user) => {
+        if (err) return res.status(500).send('Error on the server');
+        if (!user) return res.status(404).send('No user found');
+
+        let passwordIsValid = bcrypt
+    })
 });
+
 
 // Logout
 router.get('/logout', function (req, res) {
@@ -126,6 +135,23 @@ router.get('/logout', function (req, res) {
     req.flash('success', 'You are logged out.');
     res.redirect('/');
 });
+
+router.get('/me', (req, res) => {
+    let token = req.headers['x-access-token'];
+    if (!token) return res.status(401).send({auth: false, message: 'No token provided.'});
+
+    jwt.verify(token, jwtConfig.secret, (err, decoded) => {
+        if (err) return res.status(500).send({auth: false, message: 'Failed to authenticate token'});
+
+        // Password: 0 is a projection
+        User.findById(decoded.id, {password: 0}, (err, user) => {
+            if (err) return res.status(500).send("There was a problem finding the user.");
+            if (!user) return res.status(404).send("No user found");
+
+            res.status(200).send(user);
+        })
+    })
+})
 
 router.get('/:username', function (req, res) {
     User.findOne({username: req.params.username}, function (err, user) {
