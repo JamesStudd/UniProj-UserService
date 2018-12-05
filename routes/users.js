@@ -4,6 +4,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const passport = require('passport');
+const VerifyToken = require('./../auth/verifyToken');
 
 const User = require('../database/models/userModel');
 const validation = require('./../utils/validation');
@@ -120,36 +121,34 @@ router.get('/login', (req, res) => {
 
 // login post route
 router.post('/login', (req, res) => {
-    User.findOne({email: req.body.email}, (err, user) => {
+    User.findOne({username: req.body.username}, (err, user) => {
         if (err) return res.status(500).send('Error on the server');
         if (!user) return res.status(404).send('No user found');
 
-        let passwordIsValid = bcrypt
+        let passwordIsValid = bcrypt.compareSync(req.body.password, user.password);
+        if (!passwordIsValid) return res.status(401).send({auth: false, token: null});
+
+        let token = jwt.sign({id:user._id}, jwtConfig.secret, {
+            expiresIn: 86400 // Expires in 24 hours
+        });
+
+        res.status(200).send({auth: true, token: token});
     })
 });
 
 
 // Logout
 router.get('/logout', function (req, res) {
-    req.logout();
-    req.flash('success', 'You are logged out.');
-    res.redirect('/');
+    res.status(200).send({auth: false, token: null});
 });
 
-router.get('/me', (req, res) => {
-    let token = req.headers['x-access-token'];
-    if (!token) return res.status(401).send({auth: false, message: 'No token provided.'});
+router.get('/me', VerifyToken, (req, res) => {
+    // Password: 0 is a projection
+    User.findById(req.userId, { password: 0 }, (err, user) => {
+        if (err) return res.status(500).send("There was a problem finding the user.");
+        if (!user) return res.status(404).send("No user found");
 
-    jwt.verify(token, jwtConfig.secret, (err, decoded) => {
-        if (err) return res.status(500).send({auth: false, message: 'Failed to authenticate token'});
-
-        // Password: 0 is a projection
-        User.findById(decoded.id, {password: 0}, (err, user) => {
-            if (err) return res.status(500).send("There was a problem finding the user.");
-            if (!user) return res.status(404).send("No user found");
-
-            res.status(200).send(user);
-        })
+        res.status(200).send(user);
     })
 })
 
