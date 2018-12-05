@@ -3,19 +3,24 @@ const mongoose = require('../database');
 let userSchema = mongoose.Schema({
     username: {
         type: String,
-        requires: true
+        required: true
     },
     email:{
         type: String,
-        requires: true
+        required: true
     },
     password:{
         type: String,
-        requires: true
+        required: true
     },
     creditCardNumber:{
         type: Number,
-        requires: true
+        required: true
+    },
+    userLevel: {
+        type: Number, // 0 Normal user, 1 Staff, 2 Manager
+        required: true,
+        default: 0
     }
 });
 

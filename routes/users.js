@@ -4,14 +4,15 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const passport = require('passport');
-const VerifyToken = require('./../auth/verifyToken');
+const verify = require('./../auth/verify');
+const _ = require('lodash');
 
 const User = require('../database/models/userModel');
 const validation = require('./../utils/validation');
 const jwtConfig = require('./../config/jwtConfig');
 
 // Register form
-router.get('/list', (req, res) => {
+router.get('/list', verify.Admin, (req, res) => {
     User.find({}, function (err, users) {
         if (err) {
             console.log(err);
@@ -128,7 +129,7 @@ router.post('/login', (req, res) => {
         let passwordIsValid = bcrypt.compareSync(req.body.password, user.password);
         if (!passwordIsValid) return res.status(401).send({auth: false, token: null});
 
-        let token = jwt.sign({id:user._id}, jwtConfig.secret, {
+        let token = jwt.sign({id:user._id, userLevel: user.userLevel}, jwtConfig.secret, {
             expiresIn: 86400 // Expires in 24 hours
         });
 
@@ -142,7 +143,7 @@ router.get('/logout', function (req, res) {
     res.status(200).send({auth: false, token: null});
 });
 
-router.get('/me', VerifyToken, (req, res) => {
+router.get('/me', verify.Token, (req, res) => {
     // Password: 0 is a projection
     User.findById(req.userId, { password: 0 }, (err, user) => {
         if (err) return res.status(500).send("There was a problem finding the user.");
@@ -152,7 +153,35 @@ router.get('/me', VerifyToken, (req, res) => {
     })
 })
 
-router.get('/:username', function (req, res) {
+router.post('/me', verify.Token, (req, res) => {
+    User.findById(req.userId, (err, user) => {
+        if (err) return res.status(500).send("There was a problem finding the user.");
+        if (!user) return res.status(404).send("No user found");
+
+        let initialState = _.cloneDeep(user);
+
+        if (req.body.email && validation.isEmail(req.body.email)) {
+            user.email = req.body.email;
+        }
+
+        if (req.body.creditCardNumber && validation.isCreditCardNumber(req.body.creditCardNumber)) {
+            user.creditCardNumber = req.body.creditCardNumber;
+        }
+
+        if (!_.isEqual(initialState, user)) {
+            user.save((err) => {
+                if (err) {
+                    return res.status(500).json({ errors: err });
+                }
+                res.status(200).send(user);
+            })
+        } else {
+            res.status(200).send(user);
+        }
+    });
+});
+
+router.get('/:username', verify.Admin, function (req, res) {
     User.findOne({username: req.params.username}, function (err, user) {
         if (err) {
             return res.status(500);
