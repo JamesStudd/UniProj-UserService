@@ -3,7 +3,6 @@ const { check, validationResult } = require('express-validator/check');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const passport = require('passport');
 const verify = require('./../auth/verify');
 const _ = require('lodash');
 
