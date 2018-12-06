@@ -2,8 +2,14 @@ const expect = require('expect');
 const request = require('supertest');
 const validation = require('./../utils/validation');
 
-const {app} = require('../app');
+const { app } = require('../server');
 const User = require('./../database/models/userModel');
+
+const tokens = {
+    normal: '',
+    staff: '',
+    manager: ''
+}
 
 describe('Validation utils', () => {
     describe('Credit card number validation', () => {
@@ -61,56 +67,92 @@ describe('POST /users/register', () => {
         User.deleteMany({}).then(() => done());
     })
 
-    it('should create a new user', (done) => {
+    it('should create a new normal user (userLevel 0)', (done) => {
         request(app)
             .post('/users/register')
             .send({
-                username: 'testing', 
-                email: 'testing@live.co.uk',
-                password: 'testing',
-                password2: 'testing',
+                username: 'normalUser',
+                email: 'normalUser@live.co.uk',
+                password: 'normalUser',
+                password2: 'normalUser',
                 creditCardNumber: 1111222233334444
             })
             .expect(200)
             .expect((res) => {
-                expect(res.body).toInclude({ 
-                    username: 'testing', 
-                    email: 'testing@live.co.uk',
+                expect(res.body.user).toInclude({
+                    username: 'normalUser',
+                    email: 'normalUser@live.co.uk',
                     creditCardNumber: 1111222233334444
-                })
+                });
+                expect(res.body.token).toExist();
+                tokens.normal = res.body.token;
             })
             .end((err, res) => {
                 if (err) return done(err);
-             
-                User.find({username: 'testing'}).then((users) => {
+
+                User.find({ username: 'normalUser' }).then((users) => {
                     expect(users.length).toBe(1);
                     done();
                 }).catch((e) => done(e));
             })
     });
 
-    it('should create a different user', (done) => {
+    it('should create a staff user (userLevel 1)', (done) => {
         request(app)
             .post('/users/register')
             .send({
-                username: 'testing2', 
-                email: 'testing2@live.co.uk',
-                password: 'testing2',
-                password2: 'testing2',
-                creditCardNumber: 1111222233335555
+                username: 'staffUser',
+                email: 'staffUser@live.co.uk',
+                password: 'staffUser',
+                password2: 'staffUser',
+                creditCardNumber: 1111222233335555,
+                userLevel: 1
             })
             .expect(200)
             .expect((res) => {
-                expect(res.body).toInclude({ 
-                    username: 'testing2', 
-                    email: 'testing2@live.co.uk',
+                expect(res.body.user).toInclude({
+                    username: 'staffUser',
+                    email: 'staffUser@live.co.uk',
                     creditCardNumber: 1111222233335555
-                })
+                });
+                expect(res.body.token).toExist();
+                tokens.staff = res.body.token;
             })
             .end((err, res) => {
                 if (err) return done(err);
-             
-                User.find({username: 'testing2'}).then((users) => {
+
+                User.find({ username: 'staffUser' }).then((users) => {
+                    expect(users.length).toBe(1);
+                    done();
+                }).catch((e) => done(e));
+            })
+    });
+
+    it('should create a manager user (userLevel 2)', (done) => {
+        request(app)
+            .post('/users/register')
+            .send({
+                username: 'managerUser',
+                email: 'managerUser@live.co.uk',
+                password: 'managerUser',
+                password2: 'managerUser',
+                creditCardNumber: 1111222233335555,
+                userLevel: 2
+            })
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.user).toInclude({
+                    username: 'managerUser',
+                    email: 'managerUser@live.co.uk',
+                    creditCardNumber: 1111222233335555
+                });
+                expect(res.body.token).toExist();
+                tokens.manager = res.body.token;
+            })
+            .end((err, res) => {
+                if (err) return done(err);
+
+                User.find({ username: 'managerUser' }).then((users) => {
                     expect(users.length).toBe(1);
                     done();
                 }).catch((e) => done(e));
@@ -123,7 +165,7 @@ describe('POST /users/register', () => {
                 request(app)
                     .post('/users/register')
                     .send({
-                        username: 'testing', 
+                        username: 'managerUser',
                         email: 'testing@live.co.uk',
                         password: 'testing',
                         password2: 'testing',
@@ -137,7 +179,7 @@ describe('POST /users/register', () => {
                     })
                     .end(done);
             });
-        
+
             it('should fail to create a user, return with an error of \'Name is a required field.\'', (done) => {
                 request(app)
                     .post('/users/register')
@@ -156,7 +198,7 @@ describe('POST /users/register', () => {
                     .end(done);
             });
         })
-        
+
         describe('email field', () => {
             it('should fail to create a user, return with an error of \'Email is a required field.\'', (done) => {
                 request(app)
@@ -200,7 +242,7 @@ describe('POST /users/register', () => {
                     .post('/users/register')
                     .send({
                         username: 'different',
-                        email: 'testing@live.co.uk',
+                        email: 'managerUser@live.co.uk',
                         password: 'testing',
                         password2: 'testing',
                         creditCardNumber: 1111222233334444
@@ -314,47 +356,185 @@ describe('POST /users/register', () => {
 });
 
 describe('GET /users/list', () => {
-    it('should return 2 users, created in the previous tests', (done) => {
+    it('should return 3 users, created in the previous tests', (done) => {
         request(app)
             .get('/users/list')
+            .set('x-access-token', tokens.manager)
             .expect(200)
             .expect((res) => {
                 var len = res.body.length;
-                expect(len).toBe(2);
+                expect(len).toBe(3);
                 expect(res.body[0]).toInclude({
-                    username: 'testing',
-                    email: 'testing@live.co.uk',
+                    username: 'normalUser',
+                    email: 'normalUser@live.co.uk',
                     creditCardNumber: 1111222233334444
                 });
                 expect(res.body[1]).toInclude({
-                    username: 'testing2',
-                    email: 'testing2@live.co.uk',
+                    username: 'staffUser',
+                    email: 'staffUser@live.co.uk',
+                    creditCardNumber: 1111222233335555
+                });
+                expect(res.body[2]).toInclude({
+                    username: 'managerUser',
+                    email: 'managerUser@live.co.uk',
                     creditCardNumber: 1111222233335555
                 });
             })
             .end(done);
-    })
-})
+    });
 
-describe('GET /users/:username', () => {
-    it('should return the user with username \'testing\'', (done) => {
+    it('should fail, and return \'No token provided.\'', (done) => {
         request(app)
-            .get('/users/testing')
-            .expect(200)
+            .get('/users/list')
+            .expect(403)
             .expect((res) => {
                 expect(res.body).toInclude({
-                    username: 'testing',
-                    email: 'testing@live.co.uk',
-                    creditCardNumber: 1111222233334444
+                    "auth": false,
+                    "message": "No token provided."
                 })
             })
             .end(done);
     });
 
-    it('should return 404, as there is no user with username \'anon\'', (done) => {
+    it('should fail, and return \'Unauthorized to view this content.\'', (done) => {
         request(app)
-            .get('/users/anon')
-            .expect(404)
+            .get('/users/list')
+            .set('x-access-token', tokens.normal)
+            .expect(401)
+            .expect((res) => {
+                expect(res.body).toInclude({
+                    "auth": false,
+                    "message": 'Unauthorized to view this content.'
+                })
+            })
             .end(done);
     })
 })
+
+describe('GET /users/logout', () => {
+    it('should log the user out', (done) => {
+        request(app)
+            .get('/users/logout')
+            .expect(200)
+            .expect((res) => {
+                expect(res.body).toInclude({
+                    "auth": false,
+                    "token": null
+                })
+            })
+            .end(done);
+    })
+});
+
+describe('/users/me', () => {
+    describe('GET', () => {
+        it('should return normalUser', (done) => {
+            request(app)
+                .get('/users/me')
+                .set('x-access-token', tokens.normal)
+                .expect(200)
+                .expect((res) => {
+                    expect(res.body).toInclude({
+                        "username": 'normalUser',
+                        "email": 'normalUser@live.co.uk',
+                        "creditCardNumber": 1111222233334444
+                    })
+                })
+                .end(done);
+        });
+    });
+
+    describe('POST', () => {
+        it('should change normalUser\'s email address', (done) => {
+            request(app)
+                .post('/users/me')
+                .set('x-access-token', tokens.normal)
+                .send({
+                    email: 'newNormalUser@live.co.uk',
+                })
+                .expect(200)
+                .expect((res) => {
+                    expect(res.body).toInclude({
+                        "username": 'normalUser',
+                        "email": 'newNormalUser@live.co.uk',
+                        "creditCardNumber": 1111222233334444
+                    })
+                })
+                .end(done);
+        });
+
+        it('should change normalUser\'s credit card number', (done) => {
+            request(app)
+                .post('/users/me')
+                .set('x-access-token', tokens.normal)
+                .send({
+                    creditCardNumber: 1234567890123456,
+                })
+                .expect(200)
+                .expect((res) => {
+                    expect(res.body).toInclude({
+                        "username": 'normalUser',
+                        "email": 'newNormalUser@live.co.uk',
+                        "creditCardNumber": 1234567890123456
+                    })
+                })
+                .end(done);
+        });
+
+        it('should change normalUser\'s credit card number and email', (done) => {
+            request(app)
+                .post('/users/me')
+                .set('x-access-token', tokens.normal)
+                .send({
+                    creditCardNumber: 1010202030304040,
+                    email: "evenNewerNormalUser@live.co.uk"
+                })
+                .expect(200)
+                .expect((res) => {
+                    expect(res.body).toInclude({
+                        "username": 'normalUser',
+                        "email": 'evenNewerNormalUser@live.co.uk',
+                        "creditCardNumber": 1010202030304040
+                    })
+                })
+                .end(done);
+        });
+
+        it('should not change any of normalUser\'s details', (done) => {
+            request(app)
+                .post('/users/me')
+                .set('x-access-token', tokens.normal)
+                .send({
+                    creditCardNumber: 123,
+                    email: "123"
+                })
+                .expect(200)
+                .expect((res) => {
+                    expect(res.body).toInclude({
+                        "username": 'normalUser',
+                        "email": 'evenNewerNormalUser@live.co.uk',
+                        "creditCardNumber": 1010202030304040
+                    })
+                })
+                .end(done);
+        })
+    })
+})
+
+describe('GET /users/:username', () => {
+    it('should return the details for normalUser', (done) => {
+        request(app)
+            .get('/users/normalUser')
+            .set('x-access-token', tokens.manager)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body).toInclude({
+                    "username": 'normalUser',
+                    "email": 'evenNewerNormalUser@live.co.uk',
+                    "creditCardNumber": 1010202030304040
+                })
+            })
+            .end(done);
+    })
+});
+

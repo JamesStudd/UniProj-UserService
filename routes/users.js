@@ -25,11 +25,6 @@ router.get('/list', verify.Admin, (req, res) => {
     });
 });
 
-// Register Get
-router.get('/register', (req, res) => {
-    res.render('users/register');
-});
-
 // Register process
 router.post('/register', [
     check('username').not().isEmpty().withMessage('Name is a required field.'),
@@ -83,11 +78,15 @@ router.post('/register', [
     }
     let cNumber = req.body.creditCardNumber.toString().replace(/[- ]+/g, '');
     cNumber = parseInt(cNumber);
+
+    let userLevel = req.body.userLevel || 0;
+
     let newUser = new User({
         username: req.body.username,
         email: req.body.email,
         password: req.body.password,
-        creditCardNumber: cNumber
+        creditCardNumber: cNumber,
+        userLevel: userLevel
     });
 
     bcrypt.genSalt(10, (err, salt) => {
@@ -106,18 +105,10 @@ router.post('/register', [
                 });
 
                 res.status(200).send({auth: true, token: token, user: newUser});
-                // req.flash('success', 'You are now registed and can log in');
-                // res.redirect('/users/login');
             });
         });
     });
 });
-
-// Login Get
-router.get('/login', (req, res) => {
-    res.render('users/login');
-});
-
 
 // login post route
 router.post('/login', (req, res) => {
@@ -181,7 +172,7 @@ router.post('/me', verify.Token, (req, res) => {
 });
 
 router.get('/:username', verify.Admin, function (req, res) {
-    User.findOne({username: req.params.username}, function (err, user) {
+    User.findOne({username: req.params.username}, {password: 0}, function (err, user) {
         if (err) {
             return res.status(500);
         }
