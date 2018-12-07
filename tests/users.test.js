@@ -1,6 +1,5 @@
 const expect = require('expect');
 const request = require('supertest');
-const validation = require('./../utils/validation');
 
 const { app } = require('../server');
 const User = require('./../database/models/userModel');
@@ -11,63 +10,12 @@ const tokens = {
     manager: ''
 }
 
-describe('Validation utils', () => {
-    describe('Credit card number validation', () => {
-        it('should return true', () => {
-            var check = validation.isCreditCardNumber('1111-2222-3333-4444');
-            expect(check).toBe(true);
-        });
-
-        it('should return true', () => {
-            var check = validation.isCreditCardNumber('1111222233334444');
-            expect(check).toBe(true);
-        });
-
-        it('should return true', () => {
-            var check = validation.isCreditCardNumber(1111222233334444);
-            expect(check).toBe(true);
-        });
-
-        it('should return false', () => {
-            var check = validation.isCreditCardNumber('123');
-            expect(check).toBe(false);
-        });
-
-        it('should return false', () => {
-            var check = validation.isCreditCardNumber(123);
-            expect(check).toBe(false);
-        });
-    })
-
-    describe('Email validation', () => {
-        it('should return true', () => {
-            var check = validation.isEmail('james@live.co.uk');
-            expect(check).toBe(true);
-        });
-
-        it('should return true', () => {
-            var check = validation.isEmail('james@outlook.com');
-            expect(check).toBe(true);
-        });
-
-        it('should return false', () => {
-            var check = validation.isEmail('j.com');
-            expect(check).toBe(false);
-        });
-
-        it('should return false', () => {
-            var check = validation.isEmail(123);
-            expect(check).toBe(false);
-        });
-    })
-});
-
 describe('POST /users/register', () => {
     before((done) => {
         User.deleteMany({}).then(() => done());
     })
 
-    it('should create a new normal user (userLevel 0)', (done) => {
+    it('should create a normal user (userLevel 0)', (done) => {
         request(app)
             .post('/users/register')
             .send({
@@ -91,6 +39,35 @@ describe('POST /users/register', () => {
                 if (err) return done(err);
 
                 User.find({ username: 'normalUser' }).then((users) => {
+                    expect(users.length).toBe(1);
+                    done();
+                }).catch((e) => done(e));
+            })
+    });
+
+    it('should create a second normal user (userLevel 0)', (done) => {
+        request(app)
+            .post('/users/register')
+            .send({
+                username: 'normalUser2',
+                email: 'normalUser2@live.co.uk',
+                password: 'normalUser2',
+                password2: 'normalUser2',
+                creditCardNumber: 1111222233334444
+            })
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.user).toInclude({
+                    username: 'normalUser2',
+                    email: 'normalUser2@live.co.uk',
+                    creditCardNumber: 1111222233334444
+                });
+                expect(res.body.token).toExist();
+            })
+            .end((err, res) => {
+                if (err) return done(err);
+
+                User.find({ username: 'normalUser2' }).then((users) => {
                     expect(users.length).toBe(1);
                     done();
                 }).catch((e) => done(e));
@@ -128,6 +105,36 @@ describe('POST /users/register', () => {
             })
     });
 
+    it('should create a second staff user (userLevel 1)', (done) => {
+        request(app)
+            .post('/users/register')
+            .send({
+                username: 'staffUser2',
+                email: 'staffUser2@live.co.uk',
+                password: 'staffUser2',
+                password2: 'staffUser2',
+                creditCardNumber: 1111222233335555,
+                userLevel: 1
+            })
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.user).toInclude({
+                    username: 'staffUser2',
+                    email: 'staffUser2@live.co.uk',
+                    creditCardNumber: 1111222233335555
+                });
+                expect(res.body.token).toExist();
+            })
+            .end((err, res) => {
+                if (err) return done(err);
+
+                User.find({ username: 'staffUser2' }).then((users) => {
+                    expect(users.length).toBe(1);
+                    done();
+                }).catch((e) => done(e));
+            })
+    });
+
     it('should create a manager user (userLevel 2)', (done) => {
         request(app)
             .post('/users/register')
@@ -153,6 +160,36 @@ describe('POST /users/register', () => {
                 if (err) return done(err);
 
                 User.find({ username: 'managerUser' }).then((users) => {
+                    expect(users.length).toBe(1);
+                    done();
+                }).catch((e) => done(e));
+            })
+    });
+
+    it('should create a second manager user (userLevel 2)', (done) => {
+        request(app)
+            .post('/users/register')
+            .send({
+                username: 'managerUser2',
+                email: 'managerUser2@live.co.uk',
+                password: 'managerUser2',
+                password2: 'managerUser2',
+                creditCardNumber: 1111222233335555,
+                userLevel: 2
+            })
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.user).toInclude({
+                    username: 'managerUser2',
+                    email: 'managerUser2@live.co.uk',
+                    creditCardNumber: 1111222233335555
+                });
+                expect(res.body.token).toExist();
+            })
+            .end((err, res) => {
+                if (err) return done(err);
+
+                User.find({ username: 'managerUser2' }).then((users) => {
                     expect(users.length).toBe(1);
                     done();
                 }).catch((e) => done(e));
@@ -355,28 +392,43 @@ describe('POST /users/register', () => {
     })
 });
 
-describe('GET /users/list', () => {
-    it('should return 3 users, created in the previous tests', (done) => {
+describe('GET /users/list | isAdmin Middleware', () => {
+    it('should return 6 users, created in the previous tests', (done) => {
         request(app)
             .get('/users/list')
             .set('x-access-token', tokens.manager)
             .expect(200)
             .expect((res) => {
                 var len = res.body.length;
-                expect(len).toBe(3);
+                expect(len).toBe(6);
                 expect(res.body[0]).toInclude({
                     username: 'normalUser',
                     email: 'normalUser@live.co.uk',
                     creditCardNumber: 1111222233334444
                 });
                 expect(res.body[1]).toInclude({
+                    username: 'normalUser2',
+                    email: 'normalUser2@live.co.uk',
+                    creditCardNumber: 1111222233334444
+                });
+                expect(res.body[2]).toInclude({
                     username: 'staffUser',
                     email: 'staffUser@live.co.uk',
                     creditCardNumber: 1111222233335555
                 });
-                expect(res.body[2]).toInclude({
+                expect(res.body[3]).toInclude({
+                    username: 'staffUser2',
+                    email: 'staffUser2@live.co.uk',
+                    creditCardNumber: 1111222233335555
+                });
+                expect(res.body[4]).toInclude({
                     username: 'managerUser',
                     email: 'managerUser@live.co.uk',
+                    creditCardNumber: 1111222233335555
+                });
+                expect(res.body[5]).toInclude({
+                    username: 'managerUser2',
+                    email: 'managerUser2@live.co.uk',
                     creditCardNumber: 1111222233335555
                 });
             })
@@ -426,7 +478,7 @@ describe('GET /users/logout', () => {
     })
 });
 
-describe('/users/me', () => {
+describe('/users/me | validate Middleware', () => {
     describe('GET', () => {
         it('should return normalUser', (done) => {
             request(app)
