@@ -6,7 +6,8 @@
   "scripts": {
     "test": "export NODE_ENV=test || SET \"NODE_ENV=test\" && mocha \"{,!(node_modules)/**}/*.test.js\"",
     "test-watch": "nodemon --exec \"npm test\"",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "docs": "apidoc -i routes"
   },
   "repository": {
     "type": "git",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "apidoc": "^0.17.7",
+    "bower": "^1.8.4",
     "expect": "^1.20.2",
     "mocha": "^5.2.0",
     "nodemon": "^1.18.7",
