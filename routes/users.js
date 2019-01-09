@@ -10,12 +10,18 @@ const User = require('../database/models/userModel');
 const validation = require('./../utils/validation');
 const jwtConfig = require('./../config/jwtConfig');
 
-// Register form
+/**
+ * @api {get} /users/list Request all users
+ * @apiName list
+ * @apiGroup User
+ * 
+ * @apiSuccess {Array} All users
+ */
 router.get('/list', verify.Admin, (req, res) => {
     User.find({}, function (err, users) {
         if (err) {
             console.log(err);
-            return;
+            return res.status(400).send(err);
         }
         if (users) {
             res.status(200).send(users);
@@ -24,6 +30,11 @@ router.get('/list', verify.Admin, (req, res) => {
         }
     });
 });
+
+// Register Form
+router.get('/register', (req, res) => {
+    res.render('register');
+})
 
 // Register process
 router.post('/register', [
@@ -109,6 +120,11 @@ router.post('/register', [
         });
     });
 });
+
+// Login get route
+router.get('/login', (req, res) => {
+    res.render('login');
+})
 
 // login post route
 router.post('/login', (req, res) => {
