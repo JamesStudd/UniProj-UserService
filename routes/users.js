@@ -12,13 +12,33 @@ const jwtConfig = require('./../config/jwtConfig');
 
 /**
  * @api {get} /users/list Request all users
- * @apiName list
+ * @apiName GetList
  * @apiGroup User
+ * @apiVersion 1.0.0
  * 
- * @apiSuccess {Array} All users
+ * @apiPermission admin/staff
+ * 
+ * @apiSuccess {Array} Users Array of user objects
+ * @apiSuccessExample Example data on success:
+ *  [
+ *      {
+ *          "id": "Some Object ID",
+ *          "username": "Some Username",
+ *          "email": "Some Email",
+ *          "userLevel": 0/1/2
+ *      },
+ *      {
+ *          "id": "Some Other Object ID",
+ *          "username": "Some Other Username",
+ *          "email": "Another Email",
+ *          "userLevel": 0/1/2
+ *      }
+ *  ]
+ * 
+ * @apiError Auth No token provided
  */
 router.get('/list', verify.Admin, (req, res) => {
-    User.find({}, function (err, users) {
+    User.find({}, { password: 0, creditCardNumber: 0 }, function (err, users) {
         if (err) {
             console.log(err);
             return res.status(400).send(err);
@@ -36,7 +56,41 @@ router.get('/register', (req, res) => {
     res.render('register');
 })
 
-// Register process
+/**
+ * @api {post} /users/register Register a user
+ * @apiName Register
+ * @apiGroup User
+ * @apiVersion 1.0.0
+ * 
+ * @apiParam {String} username 
+ * @apiParam {String} email
+ * @apiParam {String} creditCardNumber Format must be nnnnnnnnnnnnnnnn or nnnn-nnnn-nnnn-nnnn
+ * @apiParam {String} password
+ * @apiParam {String} password2 Must match 'password' field
+ * 
+ * @apiParamExample {json} Request-Example:
+ *  {
+ *      "username": "James",
+ *      "email": "James@live.com",
+ *      "creditCardNumber": "1234-5678-9012-3456"
+ *      "password": "hunter2",
+ *      "password2": "hunter2"
+ *  }
+ * 
+ * @apiSuccess {JSON} Result Auth, Token and User object
+ * @apiSuccessExample Example data on success:
+ *  {
+ *      "auth": true,
+ *      "token": "Some Generated Token",
+ *      "user": {
+ *          "id": "Some Object ID",
+ *          "username": "James",
+ *          "email": "James@live.com",
+ *          "creditCardNumber": 1234567890123456,
+ *          "password": "some hashed and salted password"
+ *      }
+ *  }
+ */
 router.post('/register', [
     check('username').not().isEmpty().withMessage('Name is a required field.'),
     check('username').custom(value => {
@@ -126,7 +180,28 @@ router.get('/login', (req, res) => {
     res.render('login');
 })
 
-// login post route
+/**
+ * @api {post} /users/login Login a user
+ * @apiName Login
+ * @apiGroup User
+ * @apiVersion 1.0.0
+ * 
+ * @apiParam {String} username 
+ * @apiParam {String} password
+ * 
+ * @apiParamExample {json} Request-Example:
+ *  {
+ *      "username": "James",
+ *      "password": "hunter2"
+ *  }
+ * 
+ * @apiSuccess {JSON} Result Auth and a token
+ * @apiSuccessExample Example data on success:
+ *  {
+ *      "auth": true,
+ *      "token": "Some Generated Token"
+ *  }
+ */
 router.post('/login', (req, res) => {
     User.findOne({username: req.body.username}, (err, user) => {
         if (err) return res.status(500).send('Error on the server');
@@ -143,12 +218,37 @@ router.post('/login', (req, res) => {
     })
 });
 
-
-// Logout
+/**
+ * @api {get} /users/logout Logout current user
+ * @apiName Logout
+ * @apiGroup User
+ * @apiVersion 1.0.0
+ * 
+ * @apiSuccess {JSON} Result Auth false and null token
+ */
 router.get('/logout', function (req, res) {
     res.status(200).send({auth: false, token: null});
 });
 
+/**
+ * @api {get} /users/me Get current logged in user
+ * @apiName GetMe
+ * @apiGroup User
+ * @apiVersion 1.0.0
+ * 
+ * @apiPermission Logged in
+ * 
+ * @apiError UserNotFound The <code>userId</code> could not be found.
+ * 
+ * @apiSuccess {JSON} User User Object
+ * @apiSuccessExample Example data on success:
+ *  {
+ *      "id": "Some Object ID",
+ *      "username": "Some Username",
+ *      "email": "Eome Email",
+ *      "creditCardNumber": 1234567890123456
+ *  }
+ */
 router.get('/me', verify.Token, (req, res) => {
     // Password: 0 is a projection
     User.findById(req.userId, { password: 0 }, (err, user) => {
@@ -159,6 +259,33 @@ router.get('/me', verify.Token, (req, res) => {
     })
 })
 
+/**
+ * @api {post} /users/me Change the email or creditCardNumber of a user
+ * @apiName PostMe
+ * @apiGroup User
+ * @apiVersion 1.0.0
+ * 
+ * @apiPermission Logged in
+ * 
+ * @apiParam {String} [email]
+ * @apiParam {String} [creditCardNumber] Format must be nnnnnnnnnnnnnnnn or nnnn-nnnn-nnnn-nnnn
+ * 
+ * @apiParamExample {JSON} Request-Example:
+ *  {
+ *      "email": "JamesNew@live.com",
+ *      "creditCardNumber": "1111-2222-3333-4444"
+ *  }
+ * 
+ * @apiSuccess {JSON} User User Object
+ * @apiSuccessExample Example data on success:
+ *  {
+ *      "id": "Some Object ID",
+ *      "username": "Some Username",
+ *      "email": "Some Changed Email",
+ *      "creditCardNumber": "Some Changed Credit Card Number",
+ *      "password": "Some Hashed Password"
+ *  }
+ */
 router.post('/me', verify.Token, (req, res) => {
     User.findById(req.userId, (err, user) => {
         if (err) return res.status(500).send("There was a problem finding the user.");
@@ -187,8 +314,32 @@ router.post('/me', verify.Token, (req, res) => {
     });
 });
 
+/**
+ * @api {get} /users/:username Get the details of any user
+ * @apiName GetUserByUsername
+ * @apiGroup User
+ * @apiVersion 1.0.0
+ * 
+ * @apiPermission admin/staff
+ * 
+ * @apiParam {String} username
+ * 
+ * @apiParamExample {JSON} Request-Example:
+ *  {
+ *      "username": "Some Username"
+ *  }
+ * 
+ * @apiSuccess {JSON} User User Object
+ * @apiSuccessExample Example data on success:
+ *  {
+ *      "id": "Some Object ID",
+ *      "username": "Some Username",
+ *      "email": "Some Email",
+ *      "creditCardNumber": "Some Credit Card Number",
+ *  }
+ */
 router.get('/:username', verify.Admin, function (req, res) {
-    User.findOne({username: req.params.username}, {password: 0}, function (err, user) {
+    User.findOne({username: req.params.username}, {password: 0, creditCardNumber: 0}, function (err, user) {
         if (err) {
             return res.status(500);
         }
