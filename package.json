@@ -10,7 +10,7 @@
     "docs": "apidoc -i routes",
     "build": "npm i && bower install bootstrap && bower install jquery && apidoc -i routes",
     "start": "node server.js",
-    "postinstall": "npm i && bower install bootstrap && bower install jquery && apidoc -i routes"
+    "postinstall": "bower install bootstrap && bower install jquery && apidoc -i routes"
   },
   "repository": {
     "type": "git",
