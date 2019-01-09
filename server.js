@@ -2,6 +2,7 @@ require('./config/config');
 const express = require('express');
 const bodyParser = require('body-parser');
 const expressValidator = require('express-validator');
+const path = require('path');
 
 const app = express();
 
@@ -19,10 +20,8 @@ function InitAppUses() {
 
     app.use(bodyParser.urlencoded({ extended: true }));
     app.use(bodyParser.json());
-
+    
     app.set('view engine', 'pug')
-
-
 }
 
 function InitAppRoutes() {
@@ -31,6 +30,7 @@ function InitAppRoutes() {
     })
 
     app.use('/users', users);
+    app.use('/docs', express.static(__dirname + '/doc'))
 }
 
 module.exports = {app};
