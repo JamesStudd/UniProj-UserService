@@ -2,17 +2,17 @@ require('./config/config');
 const express = require('express');
 const bodyParser = require('body-parser');
 const expressValidator = require('express-validator');
-const path = require('path');
 
 const app = express();
 
 let users = require('./routes/users');
+const port = process.env.PORT || 3000;
 
 InitAppUses();
 InitAppRoutes();
 
-app.listen(3000, () => {
-    console.log('Listening on port 3000');
+app.listen(port, () => {
+    console.log(`Listening on port ${port}`);
 });
 
 function InitAppUses() {
