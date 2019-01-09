@@ -8,7 +8,7 @@
     "test-watch": "nodemon --exec \"npm test\"",
     "dev": "nodemon server.js",
     "docs": "apidoc -i routes",
-    "build": "bower install bootstrap && bower install jquery && apidoc -i routes && npm i"
+    "build": "npm i && bower install bootstrap && bower install jquery && apidoc -i routes"
   },
   "repository": {
     "type": "git",
