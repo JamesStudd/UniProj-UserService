@@ -403,33 +403,27 @@ describe('GET /users/list | isAdmin Middleware', () => {
                 expect(len).toBe(6);
                 expect(res.body[0]).toInclude({
                     username: 'normalUser',
-                    email: 'normalUser@live.co.uk',
-                    creditCardNumber: 1111222233334444
+                    email: 'normalUser@live.co.uk'
                 });
                 expect(res.body[1]).toInclude({
                     username: 'normalUser2',
-                    email: 'normalUser2@live.co.uk',
-                    creditCardNumber: 1111222233334444
+                    email: 'normalUser2@live.co.uk'
                 });
                 expect(res.body[2]).toInclude({
                     username: 'staffUser',
-                    email: 'staffUser@live.co.uk',
-                    creditCardNumber: 1111222233335555
+                    email: 'staffUser@live.co.uk'
                 });
                 expect(res.body[3]).toInclude({
                     username: 'staffUser2',
-                    email: 'staffUser2@live.co.uk',
-                    creditCardNumber: 1111222233335555
+                    email: 'staffUser2@live.co.uk'
                 });
                 expect(res.body[4]).toInclude({
                     username: 'managerUser',
-                    email: 'managerUser@live.co.uk',
-                    creditCardNumber: 1111222233335555
+                    email: 'managerUser@live.co.uk'
                 });
                 expect(res.body[5]).toInclude({
                     username: 'managerUser2',
-                    email: 'managerUser2@live.co.uk',
-                    creditCardNumber: 1111222233335555
+                    email: 'managerUser2@live.co.uk'
                 });
             })
             .end(done);
@@ -582,8 +576,7 @@ describe('GET /users/:username', () => {
             .expect((res) => {
                 expect(res.body).toInclude({
                     "username": 'normalUser',
-                    "email": 'evenNewerNormalUser@live.co.uk',
-                    "creditCardNumber": 1010202030304040
+                    "email": 'evenNewerNormalUser@live.co.uk'
                 })
             })
             .end(done);
