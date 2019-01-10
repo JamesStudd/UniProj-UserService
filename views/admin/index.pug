@@ -1,0 +1,27 @@
+extends ../_layout.pug
+
+block content
+    h1 Admin Control
+    p Logged in as #{admin.username}
+
+    table#table_format.table.table-bordered.table-striped.able-hover.table-list-search
+        thead
+            tr
+                th User Name
+                th Email
+                th User Level
+        tbody#myTable
+            each user in allUsers
+                if user.username != admin.username && user.userLevel < admin.userLevel
+                    tr.content
+                        td
+                            a(href='../users/'+user.username+'?token='+token) #{user.username}
+                            form(action = '/admin/delete/'+user.username+'?token='+token, method='POST')
+                                input.btn.btn-danger(type='submit', value='Delete')
+                        td
+                            a(href='mailto:'+user.email) #{user.email}
+                        td
+                            #{user.userLevel}
+                            form(action = '/admin/'+user.username+'?token='+token, method='POST')
+                                input(name='userLevel')
+                                input.btn.btn-primary(type='submit', value='Change')

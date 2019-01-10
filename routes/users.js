@@ -10,6 +10,11 @@ const User = require('../database/models/userModel');
 const validation = require('./../utils/validation');
 const jwtConfig = require('./../config/jwtConfig');
 
+// Register Form
+router.get('/register', (req, res) => {
+    res.render('register');
+})
+
 /**
  * @api {get} /users/list Request all users
  * @apiName GetList
@@ -50,11 +55,6 @@ router.get('/list', verify.Admin, (req, res) => {
         }
     });
 });
-
-// Register Form
-router.get('/register', (req, res) => {
-    res.render('register');
-})
 
 /**
  * @api {post} /users/register Register a user
@@ -169,7 +169,7 @@ router.post('/register', [
                     expiresIn: 86400 // Expires in 24 hours
                 });
 
-                res.status(200).send({auth: true, token: token, user: newUser});
+                res.status(200).send({auth: true, token: token, user: newUser, expiresIn: 86400});
             });
         });
     });
@@ -213,8 +213,8 @@ router.post('/login', (req, res) => {
         let token = jwt.sign({id:user._id, userLevel: user.userLevel}, jwtConfig.secret, {
             expiresIn: 86400 // Expires in 24 hours
         });
-
-        res.status(200).send({auth: true, token: token});
+        res.cookie('auth', token);
+        res.status(200).send({auth: true, token: token, expiresIn: 86400});
     })
 });
 
@@ -350,92 +350,5 @@ router.get('/:username', verify.Admin, function (req, res) {
         }
     });
 });
-
-/**
- * @api {delete} /users/:username Delete a user
- * @apiName DeleteUser
- * @apiGroup User
- * @apiVersion 1.0.0
- * 
- * @apiPermission admin/staff
- * 
- * @apiParam {String} userName Username to be deleted
- * 
- * @apiParamExample {JSON} Request-Example:
- *  {
- *      "userName": "userNameToDelete"
- *  }
- * 
- * @apiSuccess {JSON} Result Object to say who was deleted
- * 
- * @apiSuccessExample Example data on success:
- *  {
- *      "deleted": true,
- *      "status": "User deleted",
- *      "username": "usernamePassedIn"
- *  }
- */
-router.delete('/:username', verify.Admin, (req, res) => {
-    User.deleteOne({username: req.params.username}, (err, user) => {
-        if (err) {
-            return res.status(500);
-        } else {
-            return res.status(200).send({deleted: true, status: 'User deleted', username: req.params.username})
-        }
-    });
-})
-
-/**
- * @api {post} /users/admin/:username Change the user level of any user
- * @apiName ChangeUserLevel
- * @apiGroup User
- * @apiVersion 1.0.0
- * 
- * @apiPermission admin/staff
- * 
- * @apiError Error <code>userLevel</code> must be a number that is 0, 1 or 2.
- * 
- * @apiParam {Int} userLevel Integer that is 0, 1 or 2
- * 
- * @apiParamExample {JSON} Request-Example:
- *  {
- *      "userLevel": 0/1/2
- *  }
- * 
- * @apiSuccess {JSON} User User Object
- * @apiSuccessExample Example data on success:
- *  {
- *      "id": "Some Object ID",
- *      "username": "Some Username",
- *      "email": "Some Email",
- *      "userLevel": "A New UserLevel" 
- *  }
- */
-router.post('/admin/:username', verify.Admin, (req, res) => {
-
-    let newLevel = req.body.userLevel;
-    let parsedLevel = Number.parseInt(newLevel);
-
-    if (!newLevel || isNaN(parsedLevel) || parsedLevel < 0 || parsedLevel > 2) {
-        return res.status(400).send({error: "userLevel must be a number that is 0, 1 or 2."})
-    }
-
-    User.findOne({username: req.params.username}, {password: 0, creditCardNumber: 0}, (err, user) => {
-        if (err) {
-            return res.status(500);
-        }
-        if (user) {
-            user.userLevel = parsedLevel;
-            user.save((err) => {
-                if (err) {
-                    return res.status(500).json({ errors: err });
-                }
-                res.status(200).send(user);
-            });
-        } else {
-            return res.status(400).send();
-        }
-    })
-})
 
 module.exports = router;

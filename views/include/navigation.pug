@@ -7,9 +7,7 @@ nav.navbar.navbar-expand-lg.navbar-light.bg-light
       li.nav-item
         a.nav-link(href='/docs') Docs 
     ul.navbar-nav
-      if user
-        li.nav-item
-          a.nav-link(href='/users/me/' + user.username) Me
+      if token
         li.nav-item
           a.nav-link(href='/users/logout') Logout
       else

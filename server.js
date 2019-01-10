@@ -6,6 +6,7 @@ const expressValidator = require('express-validator');
 const app = express();
 
 let users = require('./routes/users');
+let admin = require('./routes/admin');
 
 // Heroku changes the process.env.PORT, allow it to do that
 // If we aren't using heroku, just use port 3000
@@ -41,6 +42,9 @@ function InitAppRoutes() {
 
     // Any /users route should be using the users router
     app.use('/users', users);
+
+    // Just for demo purposes
+    app.use('/admin', admin);
 
     // websiteroot/docs will direct to the public/doc index.html
     app.use('/docs', express.static(__dirname + '/doc'))
