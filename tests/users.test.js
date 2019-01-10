@@ -581,5 +581,73 @@ describe('GET /users/:username', () => {
             })
             .end(done);
     })
+})
+
+describe('POST /users/admin/:username', () => {
+    it('should return the details for normalUser, after changing their userLevel to 2', (done) => {
+        request(app)
+            .post('/users/admin/normalUser')
+            .set('x-access-token', tokens.manager)
+            .send({
+                userLevel: 2
+            })
+            .expect(200)
+            .expect((res) => {
+                expect(res.body).toInclude({
+                    "username": "normalUser",
+                    "email": "evenNewerNormalUser@live.co.uk",
+                    "userLevel": 2
+                })
+            })
+            .end(done);
+    });
+
+    it('should fail to change the userLevel of normalUser, as it will pass in \'4\'', (done) => {
+        request(app)
+        .post('/users/admin/normalUser')
+        .set('x-access-token', tokens.manager)
+        .send({
+            userLevel: 4
+        })
+        .expect(400)
+        .expect((res) => {
+            expect(res.body).toInclude({
+                "error": "userLevel must be a number that is 0, 1 or 2."
+            })
+        })
+        .end(done);
+    })
+
+    it('should fail to change the userLevel of normalUser, as it will pass in \'-1\'', (done) => {
+        request(app)
+        .post('/users/admin/normalUser')
+        .set('x-access-token', tokens.manager)
+        .send({
+            userLevel: -1
+        })
+        .expect(400)
+        .expect((res) => {
+            expect(res.body).toInclude({
+                "error": "userLevel must be a number that is 0, 1 or 2."
+            })
+        })
+        .end(done);
+    })
+
+    it('should fail to change the userLevel of normalUser, as it will pass in \'apple\'', (done) => {
+        request(app)
+        .post('/users/admin/normalUser')
+        .set('x-access-token', tokens.manager)
+        .send({
+            userLevel: 'apple'
+        })
+        .expect(400)
+        .expect((res) => {
+            expect(res.body).toInclude({
+                "error": "userLevel must be a number that is 0, 1 or 2."
+            })
+        })
+        .end(done);
+    })
 });
 
