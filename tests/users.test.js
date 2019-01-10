@@ -583,6 +583,23 @@ describe('GET /users/:username', () => {
     })
 })
 
+describe('DELETE /users/:username', () => {
+    it('should delete the user with username \'normalUser2\'', (done) => {
+        request(app)
+            .delete('/users/normalUser2')
+            .set('x-access-token', tokens.manager)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body).toInclude({
+                    "status": 'User deleted',
+                    "deleted": true,
+                    "username": "normalUser2"
+                })
+            })
+            .end(done);
+    });
+})
+
 describe('POST /users/admin/:username', () => {
     it('should return the details for normalUser, after changing their userLevel to 2', (done) => {
         request(app)

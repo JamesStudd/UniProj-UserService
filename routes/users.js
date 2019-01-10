@@ -352,6 +352,40 @@ router.get('/:username', verify.Admin, function (req, res) {
 });
 
 /**
+ * @api {delete} /users/:username Delete a user
+ * @apiName DeleteUser
+ * @apiGroup User
+ * @apiVersion 1.0.0
+ * 
+ * @apiPermission admin/staff
+ * 
+ * @apiParam {String} userName Username to be deleted
+ * 
+ * @apiParamExample {JSON} Request-Example:
+ *  {
+ *      "userName": "userNameToDelete"
+ *  }
+ * 
+ * @apiSuccess {JSON} Result Object to say who was deleted
+ * 
+ * @apiSuccessExample Example data on success:
+ *  {
+ *      "deleted": true,
+ *      "status": "User deleted",
+ *      "username": "usernamePassedIn"
+ *  }
+ */
+router.delete('/:username', verify.Admin, (req, res) => {
+    User.deleteOne({username: req.params.username}, (err, user) => {
+        if (err) {
+            return res.status(500);
+        } else {
+            return res.status(200).send({deleted: true, status: 'User deleted', username: req.params.username})
+        }
+    });
+})
+
+/**
  * @api {post} /users/admin/:username Change the user level of any user
  * @apiName ChangeUserLevel
  * @apiGroup User
