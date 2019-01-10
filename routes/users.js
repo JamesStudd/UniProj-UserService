@@ -351,4 +351,57 @@ router.get('/:username', verify.Admin, function (req, res) {
     });
 });
 
+/**
+ * @api {post} /users/admin/:username Change the user level of any user
+ * @apiName ChangeUserLevel
+ * @apiGroup User
+ * @apiVersion 1.0.0
+ * 
+ * @apiPermission admin/staff
+ * 
+ * @apiError Error <code>userLevel</code> must be a number that is 0, 1 or 2.
+ * 
+ * @apiParam {Int} userLevel Integer that is 0, 1 or 2
+ * 
+ * @apiParamExample {JSON} Request-Example:
+ *  {
+ *      "userLevel": 0/1/2
+ *  }
+ * 
+ * @apiSuccess {JSON} User User Object
+ * @apiSuccessExample Example data on success:
+ *  {
+ *      "id": "Some Object ID",
+ *      "username": "Some Username",
+ *      "email": "Some Email",
+ *      "userLevel": "A New UserLevel" 
+ *  }
+ */
+router.post('/admin/:username', verify.Admin, (req, res) => {
+
+    let newLevel = req.body.userLevel;
+    let parsedLevel = Number.parseInt(newLevel);
+
+    if (!newLevel || isNaN(parsedLevel) || parsedLevel < 0 || parsedLevel > 2) {
+        return res.status(400).send({error: "userLevel must be a number that is 0, 1 or 2."})
+    }
+
+    User.findOne({username: req.params.username}, {password: 0, creditCardNumber: 0}, (err, user) => {
+        if (err) {
+            return res.status(500);
+        }
+        if (user) {
+            user.userLevel = parsedLevel;
+            user.save((err) => {
+                if (err) {
+                    return res.status(500).json({ errors: err });
+                }
+                res.status(200).send(user);
+            });
+        } else {
+            return res.status(400).send();
+        }
+    })
+})
+
 module.exports = router;
