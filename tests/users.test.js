@@ -423,6 +423,19 @@ describe('/users/me | validate Middleware', () => {
                 })
                 .end(done);
         });
+
+        it('should return a 403 and \'No token provided\'', (done) => {
+            request(app)
+                .get('/users/me')
+                .expect(403)
+                .expect((res) => {
+                    expect(res.body).toInclude({
+                        auth: false, 
+                        message: 'No token provided.'
+                    })
+                })
+                .end(done);
+        });
     });
 
     describe('POST', () => {
@@ -499,6 +512,23 @@ describe('/users/me | validate Middleware', () => {
                 })
                 .end(done);
         })
+
+        it('should not change of normalUser\'s details due to auth failure', (done) => {
+            request(app)
+                .post('/users/me')
+                .send({
+                    creditCardNumber: 123,
+                    email: "123"
+                })
+                .expect(403)
+                .expect((res) => {
+                    expect(res.body).toInclude({
+                        auth: false, 
+                        message: 'No token provided.'
+                    })
+                })
+                .end(done);
+        });
     })
 })
 
