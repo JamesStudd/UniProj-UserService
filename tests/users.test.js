@@ -513,6 +513,21 @@ describe('/users/me | validate Middleware', () => {
                 .end(done);
         })
 
+        it('should not change any of normalUser\'s details', (done) => {
+            request(app)
+                .post('/users/me')
+                .set('x-access-token', tokens.normal)
+                .expect(200)
+                .expect((res) => {
+                    expect(res.body).toInclude({
+                        "username": 'normalUser',
+                        "email": 'evenNewerNormalUser@live.co.uk',
+                        "creditCardNumber": 1010202030304040
+                    })
+                })
+                .end(done);
+        })
+
         it('should not change of normalUser\'s details due to auth failure', (done) => {
             request(app)
                 .post('/users/me')
