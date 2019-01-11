@@ -133,11 +133,14 @@ router.post('/:username', verify.Admin, (req, res) => {
  *  }
  */
 router.post('/delete/:username', verify.Admin, (req, res) => {
-    User.deleteOne({username: req.params.username}, (err, user) => {
+    User.findOneAndDelete({username: req.params.username}, {projection: {password: 0, creditCardNumber: 0}}, (err, user) => {
         if (err) {
             return res.status(500);
         } else {
-            return res.status(200).send({deleted: true, status: 'User deleted', username: req.params.username})
+            if (user) {
+                return res.status(200).send({deleted: true, status: 'User deleted', username: req.params.username})
+            }
+            return res.status(404).send()
         }
     });
 })

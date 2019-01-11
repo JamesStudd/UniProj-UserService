@@ -161,8 +161,8 @@ describe('GET /users/list | isAdmin Middleware', () => {
     })
 })
 
-describe('DELETE /users/:username', () => {
-    it('should delete the user with username \'normalUser2\'', (done) => {
+describe('POST /admin/users/:username', () => {
+    it('should delete the user with username \'normalUser\'', (done) => {
         request(app)
             .post('/admin/delete/normalUser')
             .set('x-access-token', tokens.manager)
@@ -174,6 +174,22 @@ describe('DELETE /users/:username', () => {
                     "username": "normalUser"
                 })
             })
+            .end(done);
+    });
+
+    it('should return a 404, as no user found called \'NoUserFound\'', (done) => {
+        request(app)
+            .post('/admin/delete/NoUserFound')
+            .set('x-access-token', tokens.manager)
+            .expect(404)
+            .end(done);
+    });
+
+    it('should return a 404, as no user found called \'normalUser\'', (done) => {
+        request(app)
+            .post('/admin/delete/NoUserFound')
+            .set('x-access-token', tokens.manager)
+            .expect(404)
             .end(done);
     });
 })
@@ -244,4 +260,80 @@ describe('POST /admin/:username', () => {
         })
         .end(done);
     })
+});
+
+describe('Get list, delete user, get list, delete user, get list', () => {
+    it('should return 2 users', (done) => {
+        request(app)
+            .get('/users/list')
+            .set('x-access-token', tokens.manager)
+            .expect(200)
+            .expect((res) => {
+                var len = res.body.length;
+                expect(len).toBe(2);
+                expect(res.body[0]).toInclude({
+                    username: 'staffUser',
+                    email: 'staffUser@live.co.uk'
+                });
+                expect(res.body[1]).toInclude({
+                    username: 'managerUser',
+                    email: 'managerUser@live.co.uk'
+                });
+            })
+            .end(done);
+    });
+    
+    it('should delete the user with username \'staffUser\'', (done) => {
+        request(app)
+            .post('/admin/delete/staffUser')
+            .set('x-access-token', tokens.manager)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body).toInclude({
+                    "status": 'User deleted',
+                    "deleted": true,
+                    "username": "staffUser"
+                })
+            })
+            .end(done);
+    });
+
+    it('should return 1 user', (done) => {
+        request(app)
+            .get('/users/list')
+            .set('x-access-token', tokens.manager)
+            .expect(200)
+            .expect((res) => {
+                var len = res.body.length;
+                expect(len).toBe(1);
+                expect(res.body[0]).toInclude({
+                    username: 'managerUser',
+                    email: 'managerUser@live.co.uk'
+                });
+            })
+            .end(done);
+    });
+
+    it('should delete the user with username \'managerUser\'', (done) => {
+        request(app)
+            .post('/admin/delete/managerUser')
+            .set('x-access-token', tokens.manager)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body).toInclude({
+                    "status": 'User deleted',
+                    "deleted": true,
+                    "username": "managerUser"
+                })
+            })
+            .end(done);
+    });
+
+    it('should return 404, as there are no users left', (done) => {
+        request(app)
+            .get('/users/list')
+            .set('x-access-token', tokens.manager)
+            .expect(404)
+            .end(done);
+    });
 });

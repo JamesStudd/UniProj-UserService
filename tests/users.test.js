@@ -424,6 +424,34 @@ describe('/users/me | validate Middleware', () => {
                 .end(done);
         });
 
+        it('should return staffUser', (done) => {
+            request(app)
+                .get('/users/me')
+                .set('x-access-token', tokens.staff)
+                .expect(200)
+                .expect((res) => {
+                    expect(res.body).toInclude({
+                        "username": 'staffUser',
+                        "email": 'staffUser@live.co.uk'
+                    })
+                })
+                .end(done);
+        });
+
+        it('should return managerUser', (done) => {
+            request(app)
+                .get('/users/me')
+                .set('x-access-token', tokens.manager)
+                .expect(200)
+                .expect((res) => {
+                    expect(res.body).toInclude({
+                        "username": 'managerUser',
+                        "email": 'managerUser@live.co.uk'
+                    })
+                })
+                .end(done);
+        });
+
         it('should return a 403 and \'No token provided\'', (done) => {
             request(app)
                 .get('/users/me')
@@ -559,6 +587,28 @@ describe('GET /users/singleUser/:username', () => {
                     "email": 'evenNewerNormalUser@live.co.uk'
                 })
             })
+            .end(done);
+    })
+
+    it('should return the details for staffUser', (done) => {
+        request(app)
+            .get('/users/singleUser/staffUser')
+            .set('x-access-token', tokens.manager)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body).toInclude({
+                    "username": 'staffUser',
+                    "email": 'staffUser@live.co.uk'
+                })
+            })
+            .end(done);
+    })
+
+    it('should return 404 as no user will be found', (done) => {
+        request(app)
+            .get('/users/singleUser/ajenfjaefnafe')
+            .set('x-access-token', tokens.manager)
+            .expect(404)
             .end(done);
     })
 })
