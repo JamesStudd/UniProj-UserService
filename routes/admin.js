@@ -4,7 +4,16 @@ const verify = require('../auth/verify');
 const config = require('../config/jwtConfig');
 const jwt = require('jsonwebtoken');
 
+const mongoose = require('mongoose');
 const User = require('../database/models/userModel');
+
+router.get('*', (req, res, next) => {
+    if(mongoose.connection.readyState != 1) {
+        res.render('503');
+    } else {
+        next();
+    }
+})
 
 router.get('/', (req, res) => {
     let token = req.body.token || req.query.token || req.headers['x-access-token'];

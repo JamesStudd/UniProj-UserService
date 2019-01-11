@@ -1,0 +1,16 @@
+extends _layout.pug
+
+block content
+    h1 Invite User
+    form(action = '/users/invite/'+email+'?token='+token+'&sender='+sender, method = 'POST')
+        #form-group
+            label Recipient Name
+            input.form-control(name = 'name', type = 'text')
+        #form-group
+            label Recipient Email
+            input.form-control(name = 'email', type = 'text')
+        #form-group
+            label Message
+            textarea.form-control(name='customMessage', type='text', rows='2', placeholder='Custom message to send the user')
+        br
+        input.btn.btn-primary(type = 'submit', value = 'Send')

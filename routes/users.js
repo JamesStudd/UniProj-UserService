@@ -5,10 +5,21 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const verify = require('./../auth/verify');
 const _ = require('lodash');
+const nodemailer = require('nodemailer');
 
 const User = require('../database/models/userModel');
+const mongoose = require('mongoose');
 const validation = require('./../utils/validation');
 const jwtConfig = require('./../config/jwtConfig');
+
+// If Mongo isn't connected, show the user a disconnected page
+router.get('*', (req, res, next) => {
+    if(mongoose.connection.readyState != 1) {
+        res.render('503');
+    } else {
+        next();
+    }
+})
 
 // Register Form
 router.get('/register', (req, res) => {
@@ -106,7 +117,7 @@ router.post('/register', [
     check('email').custom(value => {
         if (!validation.isEmail(value.toString())) {
             return Promise.reject('Invalid email address.')
-        } else { 
+        } else {
             return true;
         }
     }),
@@ -164,12 +175,12 @@ router.post('/register', [
                 if (err) {
                     return res.status(500).json({ errors: err });
                 }
-                
-                let token = jwt.sign({id: newUser._id}, jwtConfig.secret, {
+
+                let token = jwt.sign({ id: newUser._id }, jwtConfig.secret, {
                     expiresIn: 86400 // Expires in 24 hours
                 });
 
-                res.status(200).send({auth: true, token: token, user: newUser, expiresIn: 86400});
+                res.status(200).send({ auth: true, token: token, user: newUser, expiresIn: 86400 });
             });
         });
     });
@@ -203,18 +214,18 @@ router.get('/login', (req, res) => {
  *  }
  */
 router.post('/login', (req, res) => {
-    User.findOne({username: req.body.username}, (err, user) => {
+    User.findOne({ username: req.body.username }, (err, user) => {
         if (err) return res.status(500).send('Error on the server');
         if (!user) return res.status(404).send('No user found');
 
         let passwordIsValid = bcrypt.compareSync(req.body.password, user.password);
-        if (!passwordIsValid) return res.status(401).send({auth: false, token: null});
+        if (!passwordIsValid) return res.status(401).send({ auth: false, token: null });
 
-        let token = jwt.sign({id:user._id, userLevel: user.userLevel}, jwtConfig.secret, {
+        let token = jwt.sign({ id: user._id, userLevel: user.userLevel }, jwtConfig.secret, {
             expiresIn: 86400 // Expires in 24 hours
         });
         res.cookie('auth', token);
-        res.status(200).send({auth: true, token: token, expiresIn: 86400});
+        res.status(200).send({ auth: true, token: token, expiresIn: 86400 });
     })
 });
 
@@ -227,7 +238,7 @@ router.post('/login', (req, res) => {
  * @apiSuccess {JSON} Result Auth false and null token
  */
 router.get('/logout', function (req, res) {
-    res.status(200).send({auth: false, token: null});
+    res.status(200).send({ auth: false, token: null });
 });
 
 /**
@@ -314,8 +325,76 @@ router.post('/me', verify.Token, (req, res) => {
     });
 });
 
+router.get('/invite', (req, res) => {
+    let token = req.body.token || req.query.token || req.headers['x-access-token'];
+    if (!token) return res.status(403).send({ auth: false, message: 'No token provided.' });
+
+    jwt.verify(token, jwtConfig.secret, (err, decoded) => {
+        if (err) {
+            return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
+        }
+
+        req.userId = decoded.id;
+        User.findById(req.userId, (err, user) => {
+            if (err) return res.status(500).send({ auth: false, message: 'Failed to authenticate token' });
+            if (!user) return res.status(404).send("No user found");
+
+            res.render('invite', {
+                token: token,
+                sender: user.username
+            })
+        })
+    })
+});
+
 /**
- * @api {get} /users/:username Get the details of any user
+ * @api {post} /users/invite/:username Sends an email to a recipient
+ * @apiName SendInviteEmail
+ * @apiGroup User
+ * @apiVersion 1.0.0
+ * 
+ * @apiParam {String} name
+ * @apiParam {String} email
+ * @apiParam {String} [customMessage]
+ * 
+ * @apiParamExample {JSON} Request-Example:
+ *  {
+ *      "name": "James",
+ *      "email": "James@email.com"
+ *      "customMessage": "Hey James, come join this awesome website!"
+ *  }
+ * 
+ */
+router.post('/invite/:email', verify.Token, (req, res) => {
+    if (!req.body.name || !req.body.email || !validation.isEmail(req.body.email))
+        return res.status(300).send({ error: 'Invalid name or email' })
+
+    let transporter = nodemailer.createTransport({
+        service: 'Gmail',
+        auth: {
+            user: 'Email@gmail.com',
+            pass: '********'
+        }
+    });
+
+    let mailOptions = {
+        from: '"Name" <Email@Email.com>',
+        to: req.body.email,
+        subject: `${req.query.sender} has invited you to ThreeAmigos!`,
+        text: 'Hi ' + req.body.name + ',\n' + req.body.customMessage + '\nTo join, visit www.threeamigos.com to sign up!'
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.log(error);
+            return res.status(400).send({error: 'Internal server error.'});
+        }
+        res.redirect('/');
+    })
+})
+
+/**
+ * @api {get} /users/singleUser/:username Get the details of any user
  * @apiName GetUserByUsername
  * @apiGroup User
  * @apiVersion 1.0.0
@@ -338,8 +417,8 @@ router.post('/me', verify.Token, (req, res) => {
  *      "creditCardNumber": "Some Credit Card Number",
  *  }
  */
-router.get('/:username', verify.Admin, function (req, res) {
-    User.findOne({username: req.params.username}, {password: 0, creditCardNumber: 0}, function (err, user) {
+router.get('/singleUser/:username', verify.Admin, function (req, res) {
+    User.findOne({ username: req.params.username }, { password: 0, creditCardNumber: 0 }, function (err, user) {
         if (err) {
             return res.status(500);
         }

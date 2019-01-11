@@ -502,10 +502,10 @@ describe('/users/me | validate Middleware', () => {
     })
 })
 
-describe('GET /users/:username', () => {
+describe('GET /users/singleUser/:username', () => {
     it('should return the details for normalUser', (done) => {
         request(app)
-            .get('/users/normalUser')
+            .get('/users/singleUser/normalUser')
             .set('x-access-token', tokens.manager)
             .expect(200)
             .expect((res) => {
