@@ -3,4 +3,3 @@ config/databaseConfig
 package-lock.json
 public/bower_components
 doc/
-credentials.js
