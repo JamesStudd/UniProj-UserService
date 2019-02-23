@@ -11,5 +11,7 @@ Email invite will not work since i took my email credentials out of the code.
 To run:  
 - Git clone / download this repo  
 - CD into the installation  
+- Change credentials.js to have some correct data to connect to a mongoose connection. Development one will be used when running normally, test one will be used when running "npm run test"  
+- (If you want the emailing route to work) Change line 375 and 376 in /routes/users.js to be a gmail account.  
 - Run "npm run build"  
 - Run "npm run start" / "npm run dev" (with nodemon)
